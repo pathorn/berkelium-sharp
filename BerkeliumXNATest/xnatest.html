@@ -1,0 +1,73 @@
+﻿<html>
+  <head>
+    <title>Test Page</title>
+    <style>
+      body, html {
+        font-family: Calibri, Tahoma, Verdana, sans-serif;
+        font-size: 14pt;
+        color: #D0D0D0;
+      }
+      
+      a {
+        color: #E0E0E0;
+      }
+      
+      a:hover {
+        color: #FFFFFF;
+      }
+      
+      div.floatingWindow {
+        position: absolute;
+        
+        width: 280px;
+        height: 180px;
+        background-image: url(window.png);
+        background-repeat: no-repeat;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="window" class="floatingWindow" style="left: 0px; top: 0px;">
+      This floating window has a transparent background, but opaque text.<br />
+      You can drag it with your mouse.<br />
+      Here's a hyperlink: <a href="http://www.luminance.org/">luminance.org</a>
+    </div>
+    
+    <script type="text/javascript">
+      var dragStartInfo, isDragging = false;
+
+      function onMouseDown (e) {
+        var el = document.getElementById("window");
+        dragStartInfo = [
+          el.offsetLeft, el.offsetTop,
+          e.x, e.y
+        ];
+        isDragging = true;
+        e.stopPropagation();
+      }
+
+      function onMouseMove (e) {
+        if (!isDragging)
+            return;
+
+        var el = document.getElementById("window");
+        el.style.setProperty("left", (dragStartInfo[0] + (e.x - dragStartInfo[2])) + "px");
+        el.style.setProperty("top", (dragStartInfo[1] + (e.y - dragStartInfo[3])) + "px");
+        e.stopPropagation();
+      }
+
+      function onMouseUp (e) {
+        isDragging = false;
+        e.stopPropagation();
+      }
+      
+      (function () {
+        var w = document.getElementById("window");
+        w.addEventListener("mousedown", onMouseDown, true);
+        w.addEventListener("mousemove", onMouseMove, true);
+        w.addEventListener("mouseup", onMouseUp, true);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C# Express 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BerkeliumXNATest", "BerkeliumXNATest.csproj", "{114F92ED-7053-4A40-82F6-EF55B1632BE0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{114F92ED-7053-4A40-82F6-EF55B1632BE0}.Debug|x86.ActiveCfg = Debug|x86
+		{114F92ED-7053-4A40-82F6-EF55B1632BE0}.Debug|x86.Build.0 = Debug|x86
+		{114F92ED-7053-4A40-82F6-EF55B1632BE0}.Release|x86.ActiveCfg = Release|x86
+		{114F92ED-7053-4A40-82F6-EF55B1632BE0}.Release|x86.Build.0 = Release|x86
+		{F0EA7331-3EAB-45A3-8839-E8A22E1E6E80}.Debug|x86.ActiveCfg = Debug|x86
+		{F0EA7331-3EAB-45A3-8839-E8A22E1E6E80}.Release|x86.ActiveCfg = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

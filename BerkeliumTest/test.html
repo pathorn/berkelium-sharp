@@ -1,0 +1,44 @@
+﻿<html>
+  <head>
+    <title>Test Page</title>
+  </head>
+  <body>
+    <script type="text/javascript">
+      function issueCallbacks() {
+        window.chrome.send("test");
+        window.chrome.send("test", ["foo", "bar"]);
+      }
+      
+      function showAlert() {
+        alert("test");
+      }
+      
+      function showConfirm() {
+        var result = confirm("test");
+        alert("Result of confirm() was " + result);
+      }
+      
+      function showPrompt() {
+        var name = prompt("Enter your name", "Bob");
+        if (name != null) {
+          alert("You entered the name '" + name + "'.");
+        } else {
+          alert("You didn't enter a name.");
+        }
+      }
+      
+      function showPopup() {
+        window.open(window.location.href, 'window' +Math.floor(Math.random() * 1024), 'height=255,width=250,toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no ,modal=yes');
+      }
+    </script>
+    <b>Example Page</b><br />
+
+    <button onclick="issueCallbacks();">Issue Callbacks</button><br />
+    <button onclick="showAlert();">Show Alert</button>
+    <button onclick="showConfirm();">Show Confirm</button>
+    <button onclick="showPrompt();">Show Prompt</button><br />
+    <button onclick="showPopup();">Show Popup Page</button><br />
+
+    <a href="http://www.luminance.org/"><img src="luminance.png" alt="luminance icon" /> luminance.org</a><br />    
+  </body>
+</html>
