@@ -1,7 +1,7 @@
 To build BerkeliumSharp, unpack the Windows Berkelium SDK in this folder, so you have 'bin', 'include' and 'lib' folders next to this file.
 After that, open up the .sln in BerkeliumManaged and compile.
 
-The Windows SDK can be downloaded from the sirikata win32 project at http://sirikatawin32.googlecode.com/svn/trunk/berkelium.zip.
+The Windows SDK can be downloaded from the sirikata win32 project at http://github.com/sirikata/berkelium/downloads
 
 For more info, see:
 http://berkelium.org/

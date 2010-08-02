@@ -10,6 +10,14 @@ using namespace System::Reflection;
 
 namespace Berkelium {
   namespace Managed {
+
+    namespace {
+      String ^ URLToString(const URLString &str) {
+        std::wstring wideURL (str.data(), str.data()+str.length());
+        return gcnew String(wideURL.data(), 0, wideURL.length());
+      }
+    }
+
     void BerkeliumSharp::Init (String ^ homeDirectory) {
         if (IsInitialized)
           return;
@@ -102,10 +110,10 @@ namespace Berkelium {
         }
 
         if (homeDirectory != nullptr) {
-          pin_ptr<const wchar_t> homeDirPtr(PtrToStringChars(homeDirectory));
-          ::Berkelium::init(homeDirPtr, homeDirectory->Length);
+          WideStringHelper homeDirPtr(homeDirectory);
+          ::Berkelium::init(homeDirPtr);
         } else {
-          ::Berkelium::init(0, 0);
+          ::Berkelium::init(WideString::empty());
         }
 
         Wrapper = new ErrorDelegateWrapper();
@@ -115,7 +123,7 @@ namespace Berkelium {
     }
 
     void GrowBufferForText (Decoder ^ decoder, const char * source, size_t length, wchar_t * &target, size_t &targetSize) {
-      int count = decoder->GetCharCount((unsigned char *)source, length, true);
+      size_t count = decoder->GetCharCount((unsigned char *)source, length, true);
 
       if (targetSize < count) {
         if (target != 0)
@@ -146,7 +154,8 @@ namespace Berkelium {
 
       IntPtr schemePtr = Marshal::StringToHGlobalAnsi(scheme);
 
-      context->Native->registerProtocol((const char *)schemePtr.ToPointer(), scheme->Length, Native);
+      // FIXME: registerProtocol not defined.
+      // context->Native->registerProtocol((const char *)schemePtr.ToPointer(), scheme->Length, Native);
 
       Marshal::FreeHGlobal(schemePtr);
     }
@@ -154,7 +163,8 @@ namespace Berkelium {
     ProtocolHandler::~ProtocolHandler () {
       if (Native) {
         IntPtr schemePtr = Marshal::StringToHGlobalAnsi(Scheme);
-        Context->Native->unregisterProtocol((const char *)schemePtr.ToPointer(), Scheme->Length);
+        // FIXME: unregisterProtocol not defined.
+        // Context->Native->unregisterProtocol((const char *)schemePtr.ToPointer(), Scheme->Length);
         Marshal::FreeHGlobal(schemePtr);
 
         delete Native;
@@ -276,21 +286,21 @@ namespace Berkelium {
       return false;
     }
 
-    void WindowDelegateWrapper::onCursorUpdated (const Berkelium::Cursor &newCursor) {
+    void WindowDelegateWrapper::onCursorUpdated (::Berkelium::Window *win, const Berkelium::Cursor &newCursor) {
       Owner->OnCursorChanged(
         (IntPtr)newCursor.GetCursor()
       );
     }
 
-    void WindowDelegateWrapper::onAddressBarChanged (::Berkelium::Window *win, const wchar_t *newURL, size_t newURLSize) {
+    void WindowDelegateWrapper::onAddressBarChanged (::Berkelium::Window *win, URLString newURL) {
       Owner->OnAddressBarChanged(
-        gcnew String(newURL, 0, newURLSize)
+        URLToString(newURL)
         );
     }
 
-    void WindowDelegateWrapper::onStartLoading (::Berkelium::Window *win, const wchar_t *newURL, size_t newURLSize) {
+    void WindowDelegateWrapper::onStartLoading (::Berkelium::Window *win, URLString newURL) {
       Owner->OnStartLoading(
-        gcnew String(newURL, 0, newURLSize)
+        URLToString(newURL)
         );
     }
 
@@ -298,9 +308,9 @@ namespace Berkelium {
       Owner->OnLoad();
     }
 
-    void WindowDelegateWrapper::onProvisionalLoadError(::Berkelium::Window *win, const wchar_t * url, size_t urlLength, int errorCode, bool isMainFrame) {
+    void WindowDelegateWrapper::onProvisionalLoadError(::Berkelium::Window *win, URLString url, int errorCode, bool isMainFrame) {
       Owner->OnProvisionalLoadError(
-        gcnew String(url, 0, urlLength), errorCode, isMainFrame
+        URLToString(url), errorCode, isMainFrame
         );
     }
 
@@ -316,47 +326,25 @@ namespace Berkelium {
       Owner->OnResponsive();
     }
 
-    void WindowDelegateWrapper::onChromeSend (::Berkelium::Window *win, ::Berkelium::WindowDelegate::Data message, const ::Berkelium::WindowDelegate::Data *content, size_t numContents) {
-      gcroot<Decoder ^> decoder = Encoding::UTF8->GetDecoder();
-      gcroot<array<String ^> ^> _args(
-        gcnew array<String ^>(numContents)
-        );
-
-      int bytesUsed, charsUsed;
-      bool completed;
-      wchar_t * buf = 0;
-      size_t bufSize = 0;
-
-      for (unsigned int i = 0; i < numContents; i++) {
-        const ::Berkelium::WindowDelegate::Data & item = content[i];
-
-        GrowBufferForText(decoder, item.message, item.length, buf, bufSize);
-        decoder->Convert((unsigned char *)item.message, item.length, buf, bufSize, true, bytesUsed, charsUsed, completed);
-
-        _args[i] = gcnew String(buf, 0, charsUsed);
-      }
-
-      GrowBufferForText(decoder, message.message, message.length, buf, bufSize);
-      decoder->Convert((unsigned char *)message.message, message.length, buf, bufSize, true, bytesUsed, charsUsed, completed);
-
-      Owner->OnChromeSend(
-        gcnew String(buf, 0, charsUsed),
-        _args
-      );
+    void WindowDelegateWrapper::onExternalHost (::Berkelium::Window *win, WideString message, URLString origin, URLString target) {
+      // FIXME: Add external host support.
     }
 
-    void WindowDelegateWrapper::onCreatedWindow (::Berkelium::Window *win, ::Berkelium::Window *newWindow, ::Berkelium::Rect &initialRect, const wchar_t *url, size_t urlLength) {
+    void WindowDelegateWrapper::onCreatedWindow (::Berkelium::Window *win, ::Berkelium::Window *newWindow, const ::Berkelium::Rect &initialRect) {
       Owner->OnCreatedWindow(
         gcnew Window(Owner->Context, newWindow, true),
         gcnew Rect(initialRect.left(), initialRect.top(), initialRect.width(), initialRect.height()),
-        gcnew String(url, 0, urlLength)
+        gcnew String("", 0, 0) // FIXME: Chromium no longer sends us the URL.
       );
     }
 
-    void WindowDelegateWrapper::onPaint (::Berkelium::Window *win, const unsigned char *sourceBuffer, const ::Berkelium::Rect &rect, int dx, int dy, const ::Berkelium::Rect &scrollRect) {
+    void WindowDelegateWrapper::onPaint (::Berkelium::Window *win, const unsigned char *sourceBuffer, const ::Berkelium::Rect &rect, size_t numCopyRects, const ::Berkelium::Rect *copyRects, int dx, int dy, const ::Berkelium::Rect &scrollRect) {
       Owner->OnPaint(
         IntPtr((void *)sourceBuffer),
         gcnew Rect(rect.left(), rect.top(), rect.width(), rect.height()),
+        // FIXME: Need to pass on copy rects to avoid extra copy.
+        // numCopyRects,
+        // gcnew Array<Rect>(copyRects[i].leftcopyRects[i].top(), copyRects[i].width(), copyRects[i].height()), 
         dx, dy,
         gcnew Rect(scrollRect.left(), scrollRect.top(), scrollRect.width(), scrollRect.height())
       );
@@ -366,26 +354,26 @@ namespace Berkelium {
       Owner->OnCrashedWorker();
     }
 
-    void WindowDelegateWrapper::onCrashedPlugin(::Berkelium::Window *win, const wchar_t *pluginName, size_t pluginNameLength) {
+    void WindowDelegateWrapper::onCrashedPlugin(::Berkelium::Window *win, WideString pluginName) {
       Owner->OnCrashedPlugin(
-        gcnew String(pluginName, 0, pluginNameLength)
+        gcnew String(pluginName.data(), 0, pluginName.length())
         );
     }
 
-    void WindowDelegateWrapper::onConsoleMessage(::Berkelium::Window *win, const wchar_t *sourceId, size_t sourceIdLength, const wchar_t *message, size_t messageLength, int line_no) {
+    void WindowDelegateWrapper::onConsoleMessage(::Berkelium::Window *win, WideString sourceId, WideString message, int line_no) {
       Owner->OnConsoleMessage(
-        gcnew String(sourceId, 0, sourceIdLength),
-        gcnew String(message, 0, messageLength),
+        gcnew String(sourceId.data(), 0, sourceId.length()),
+        gcnew String(message.data(), 0, message.length()),
         line_no
         );
     }
 
-    void WindowDelegateWrapper::onScriptAlert(::Berkelium::Window *win, const wchar_t *message, size_t messageLength, const wchar_t *defaultValue, size_t defaultValueLength, const wchar_t *url, size_t urlLength, int flags, bool &success, std::wstring &value) {
+    void WindowDelegateWrapper::onScriptAlert(::Berkelium::Window *win, WideString message, WideString defaultValue, URLString url, int flags, bool &success, WideString &value) {
       String ^ valueStr = nullptr;
       Owner->OnScriptAlert(
-        gcnew String(message, 0, messageLength),
-        gcnew String(defaultValue, 0, defaultValueLength),
-        gcnew String(url, 0, urlLength),
+        gcnew String(message.data(), 0, message.length()),
+        gcnew String(defaultValue.data(), 0, defaultValue.length()),
+        URLToString(url),
         flags,
         success,
         valueStr
@@ -393,14 +381,23 @@ namespace Berkelium {
 
       if (valueStr != nullptr) {
         pin_ptr<const wchar_t> valuePtr = PtrToStringChars(valueStr);
-        value = std::wstring(valuePtr, valueStr->Length);
+        value.mLength = valueStr->Length;
+        wchar_t *writable = new wchar_t[value.mLength];
+        for (size_t i = 0; i < value.mLength; ++i) {
+          writable[i] = valuePtr[i];
+        }
+        value.mData = writable;
       }
     }
 
-    void WindowDelegateWrapper::onNavigationRequested(::Berkelium::Window *win, const wchar_t *newUrl, size_t newUrlLength, const wchar_t *referrer, size_t referrerLength, bool isNewWindow, bool &cancelDefaultAction) {
+    void WindowDelegateWrapper::freeLastScriptAlert(WideString lastValue) {
+      delete []lastValue.mData;
+    }
+
+    void WindowDelegateWrapper::onNavigationRequested(::Berkelium::Window *win, URLString newUrl, URLString referrer, bool isNewWindow, bool &cancelDefaultAction) {
       Owner->OnNavigationRequested(
-        gcnew String(newUrl, 0, newUrlLength),
-        gcnew String(referrer, 0, referrerLength),
+        URLToString(newUrl),
+        URLToString(referrer),
         isNewWindow, cancelDefaultAction
         );
     }
@@ -444,10 +441,11 @@ namespace Berkelium {
       );
     }
 
-    void WindowDelegateWrapper::onWidgetPaint (::Berkelium::Window *win, ::Berkelium::Widget *widget, const unsigned char *sourceBuffer, const ::Berkelium::Rect &rect, int dx, int dy, const ::Berkelium::Rect &scrollRect) {
+    void WindowDelegateWrapper::onWidgetPaint (::Berkelium::Window *win, ::Berkelium::Widget *widget, const unsigned char *sourceBuffer, const ::Berkelium::Rect &rect, size_t numCopyRects, const ::Berkelium::Rect *copyRects, int dx, int dy, const ::Berkelium::Rect &scrollRect) {
       if (widget->getId() == win->getId())
         return;
 
+      // FIXME: Same here
       Owner->OnWidgetPaint(
         GetWidget(widget, false),
         IntPtr((void *)sourceBuffer),
@@ -463,15 +461,15 @@ namespace Berkelium {
       );
     }
 
-    void WindowDelegateWrapper::onTitleChanged(::Berkelium::Window *win, const wchar_t *title, size_t titleLength) {
+    void WindowDelegateWrapper::onTitleChanged(::Berkelium::Window *win, WideString title) {
       Owner->OnTitleChanged(
-        gcnew String(title, 0, titleLength)
+        gcnew String(title.data(), 0, title.length())
       );
     }
 
-    void WindowDelegateWrapper::onTooltipChanged(::Berkelium::Window *win, const wchar_t *tooltip, size_t tooltipLength) {
+    void WindowDelegateWrapper::onTooltipChanged(::Berkelium::Window *win, WideString tooltip) {
       Owner->OnTooltipChanged(
-        gcnew String(tooltip, 0, tooltipLength)
+        gcnew String(tooltip.data(), 0, tooltip.length())
       );
     }
 
@@ -481,21 +479,13 @@ namespace Berkelium {
       args->MediaType = (MediaType)cargs.mediaType;
       args->MouseX = cargs.mouseX;
       args->MouseY = cargs.mouseY;
-      args->LinkUrl = gcnew String(
-        cargs.linkUrl, 0, cargs.linkUrlLength
-      );
-      args->SrcUrl = gcnew String(
-        cargs.srcUrl, 0, cargs.srcUrlLength
-      );
-      args->PageUrl = gcnew String(
-        cargs.pageUrl, 0, cargs.pageUrlLength
-      );
-      args->FrameUrl = gcnew String(
-        cargs.frameUrl, 0, cargs.frameUrlLength
-      );
+      args->LinkUrl = URLToString(cargs.linkUrl);
+      args->SrcUrl = URLToString(cargs.srcUrl);
+      args->PageUrl = URLToString(cargs.pageUrl);
+      args->FrameUrl = URLToString(cargs.frameUrl);
       args->SelectedText = gcnew String(
-        cargs.selectedText, 0, cargs.selectedTextLength
-      );
+        cargs.selectedText.data(), 0, cargs.selectedText.length()
+        );
       args->IsEditable = cargs.isEditable;
       args->EditFlags = (EditFlags)cargs.editFlags;
 
